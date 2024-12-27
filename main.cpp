@@ -433,8 +433,8 @@ void drawGridCube()
                 -0.5f
             ));*/
             modelingMatrix = glm::rotate(rotationMat * glm::mat4(1.f),glm::radians(90.0f),glm::vec3(1.0f,0.0f,0.0f));
-            modelingMatrix = glm::translate(modelingMatrix,glm::vec3(0.0f + row * 1.0f - 4.5f ,0.0f + col * 1.0f - 4.5f   ,6.0f));
-            modelingMatrix = glm::scale(modelingMatrix, glm::vec3(1.0f,1.0f,0.4f));
+            modelingMatrix = glm::translate(modelingMatrix,glm::vec3(0.0f + row * 1.0f - 4.5f ,0.0f + col * 1.0f - 4.5f   ,6.5f));
+            modelingMatrix = glm::scale(modelingMatrix, glm::vec3(1.0f,1.0f,1.0f));
             
 
             glUniformMatrix4fv(modelingMatrixLoc[0], 1, GL_FALSE, glm::value_ptr(modelingMatrix));
@@ -465,7 +465,7 @@ void drawGridCubeEdges()
             ));*/
             modelingMatrix = glm::rotate(rotationMat * glm::mat4(1.f),glm::radians(90.0f),glm::vec3(1.0f,0.0f,0.0f));
 
-            modelingMatrix = glm::translate(modelingMatrix,glm::vec3(0.0f + row * 1.0f - 4.5f ,0.0f + col * 1.0f - 4.5f   ,6.0f));
+            modelingMatrix = glm::translate(modelingMatrix,glm::vec3(0.0f + row * 1.0f - 4.5f ,0.0f + col * 1.0f - 4.5f   ,6.5f));
 
             modelingMatrix = glm::scale(modelingMatrix, glm::vec3(1.0f,1.0f,0.4f));
             
@@ -494,8 +494,8 @@ void drawTetrimoniCube(glm::vec3 &blockPosition,glm::mat4 modelingMatrix)
             for (int col = 0; col < cubeSize; ++col) {
                 glm::vec3 cubePosition = blockPosition + glm::vec3(
                     col * 1.0f- 1.5f ,
-                    row * 1.0f- 2.5f  ,
-                    z * 1.0f- 2.5f  
+                    row * 1.0f- 1.5f  ,
+                    z * 1.0f- 1.5f  
                 );
 
                 modelingMatrix = glm::translate( rotationMat * glm::mat4(1.0f), cubePosition);
@@ -527,8 +527,8 @@ void drawTetrimoniEdges(glm::vec3 &blockPosition,glm::mat4 modelingMatrix)
             for (int col = 0; col < cubeSize; ++col) {
                 glm::vec3 cubePosition = blockPosition + glm::vec3(
                     col * 1.0f- 1.5f ,
-                    row * 1.0f- 2.5f  ,
-                    z * 1.0f- 2.5f  
+                    row * 1.0f- 1.5f  ,
+                    z * 1.0f- 1.5f  
                 );
 
                 modelingMatrix = glm::translate(rotationMat * glm::mat4(1.0f), cubePosition);
@@ -542,6 +542,31 @@ void drawTetrimoniEdges(glm::vec3 &blockPosition,glm::mat4 modelingMatrix)
             }
         }
     }
+}
+static bool occupationMatrix[9][16][9]={false};
+bool checkCollision(const glm::vec3& blockPosition) { // block position left rear bottom
+    // Check each cube in the 3x3x3 tetrimino
+    for (int z = blockPosition.z; z < blockPosition.z + 3; z++) {
+        for (int y = blockPosition.y; y < blockPosition.y + 3; y++) {
+            for (int x = blockPosition.x; x < blockPosition.x + 3; x++) {
+                // Convert local cube position to world position
+                glm::vec3 worldPos = blockPosition + glm::vec3(
+                    x * 1.0f - 1.5f,
+                    y * 1.0f - 2.5f,
+                    z * 1.0f - 2.5f
+                );
+                
+
+
+
+                // Check if position is occupied
+                if (occupationMatrix[(int) blockPosition.x][(int)blockPosition.y+5][(int)blockPosition.z]) {
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
 }
 
 
@@ -641,9 +666,23 @@ void reshape(GLFWwindow* window, int w, int h)
     }
 }
 static float fallSpeed = 2.0f; 
-static glm::vec3 blockPosition(0.0f, 6.0f, 0.0f); // Starting position for the block (top-center of the scene).
+static glm::vec3 blockPosition(0.0f, 9.0f, 0.0f); // Starting position for the block (top-center of the scene).
 
+void left() {
+    glm::vec3 nextPos = blockPosition;
+    nextPos.x -= 1.0f;
+    if (!checkCollision(nextPos)) {
+        blockPosition = nextPos;
+    }
+}
 
+void right() {
+    glm::vec3 nextPos = blockPosition;
+    nextPos.x += 1.0f;
+    if (!checkCollision(nextPos)) {
+        blockPosition = nextPos;
+    }
+}
 void speedUp(){
     fallSpeed-=0.5f;
 }
@@ -651,12 +690,7 @@ void slowDown(){
     fallSpeed+=0.5f;
 }
 
-void left(){
-    blockPosition.x -= 1.0f;
-}
-void right(){
-    blockPosition.x += 1.0f;
-}
+
 void rotateRight() {
     targetRotationAngle -= 90.0f;
 }
@@ -696,9 +730,45 @@ else if ((key == GLFW_KEY_K) && action == GLFW_PRESS) {
     rotateRight();
 }
 }
-void updateBlock(glm::vec3 &blockPosition) {
-    blockPosition.y -= 1.f; // Move block downward.
+void lockBlock(const glm::vec3& blockPosition) {
+    for (int z = 0; z < 3; z++) {
+        for (int y = 0; y < 3; y++) {
+            for (int x = 0; x < 3; x++) {
+                glm::vec3 worldPos = blockPosition + glm::vec3(
+                    x * 1.0f - 1.5f,
+                    y * 1.0f - 2.5f,
+                    z * 1.0f - 2.5f
+                );
+
+                int gridX = round(worldPos.x + 4.5f);
+                int gridY = round(worldPos.y);
+                int gridZ = round(worldPos.z);
+
+                if (gridX >= 0 && gridX < 9 && 
+                    gridY >= 0 && gridY < 9 && 
+                    gridZ >= 0 && gridZ < 9) {
+                    occupationMatrix[gridY][gridX][gridZ] = true;
+                }
+            }
+        }
+    }
 }
+
+// Modify movement functions to include collision checks
+void updateBlock(glm::vec3 &blockPosition) {
+    glm::vec3 nextPos = blockPosition;
+    nextPos.y -= 1.0f;
+    
+    if (checkCollision(nextPos)) {
+        cout << "oldu\n";
+        lockBlock(blockPosition);
+        blockPosition = glm::vec3(0.0f, 6.0f, 0.0f);
+    } else {
+        blockPosition = nextPos;
+    }
+}
+
+
 
 
 void updateRotation(float deltaTime) {
@@ -715,9 +785,17 @@ void updateRotation(float deltaTime) {
         rotationMat = glm::rotate(glm::mat4(1.0f), glm::radians(currentRotationAngle), glm::vec3(0.0f, 1.0f, 0.0f));
     }
 }
+
 void mainLoop(GLFWwindow* window) {
     float lastUpdate = glfwGetTime();
     float lastFrameTime = lastUpdate;
+
+
+    for(int i=0; i<9; i++){
+        for(int j=0; j<9 ; j++){
+            occupationMatrix[i][0][j]=true;
+        }
+    }
     
     while (!glfwWindowShouldClose(window)) {
         float currentTime = glfwGetTime();

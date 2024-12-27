@@ -412,11 +412,6 @@ void drawGridCube()
 {   
     glUseProgram(gProgram[0]);
 
-    // Modified camera position to better view the grid
-    glm::vec3 cameraPosition(0.0f, 35.0f, 5.0f);  // Reduced height and distance
-    glm::vec3 targetPosition(0.0f, 0.0f, 0.0f);    // Still looking at center
-    glm::vec3 upDirection(0.0f, -1.0f, 0.0f);       // Maintained Y-up direction
-
     glm::mat4 viewMatrix = glm::lookAt(eyePos, glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
 
     // Send the view matrix to the shader
@@ -450,10 +445,6 @@ void drawGridCubeEdges()
 
     glLineWidth(3);
 
-    // Modified camera position to match drawCube function
-    glm::vec3 cameraPosition(0.0f, 35.0f, 5.0f);  // Matched with drawCube
-    glm::vec3 targetPosition(0.0f, 0.0f, 0.0f);
-    glm::vec3 upDirection(0.0f, -1.0f, 0.0f);
 
     glm::mat4 viewMatrix = glm::lookAt(eyePos, glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
     glUniformMatrix4fv(viewingMatrixLoc[1], 1, GL_FALSE, glm::value_ptr(viewMatrix));
@@ -488,11 +479,7 @@ void drawTetrimoniCube(glm::vec3 &blockPosition)
 {   
     glUseProgram(gProgram[0]);
 
-    glm::vec3 cameraPosition(0.0f, 35.0f, 5.0f);
-    glm::vec3 targetPosition(0.0f, 0.0f, 0.0f);
-    glm::vec3 upDirection(0.0f, -1.0f, 0.0f);
-
-    glm::mat4 viewMatrix = glm::lookAt(cameraPosition, targetPosition, upDirection);
+    glm::mat4 viewMatrix = glm::lookAt(eyePos, glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
     glUniformMatrix4fv(viewingMatrixLoc[0], 1, GL_FALSE, glm::value_ptr(viewMatrix));
 
     const int cubeSize = 3;  // 3x3x3 grid
@@ -502,9 +489,9 @@ void drawTetrimoniCube(glm::vec3 &blockPosition)
         for (int row = 0; row < cubeSize; ++row) {
             for (int col = 0; col < cubeSize; ++col) {
                 glm::vec3 cubePosition = blockPosition + glm::vec3(
-                    col * cubeSpacing - (cubeSize / 2.0f) * cubeSpacing,
-                    row * cubeSpacing - (cubeSize / 2.0f) * cubeSpacing,
-                    z * cubeSpacing - (cubeSize / 2.0f) * cubeSpacing
+                    col * 1.0f- 1.5f ,
+                    row * 1.0f- 2.5f  ,
+                    z * 1.0f- 2.5f  
                 );
 
                 glm::mat4 modelingMatrix = glm::translate(glm::mat4(1.0f), cubePosition);
@@ -523,12 +510,8 @@ void drawTetrimoniEdges(glm::vec3 &blockPosition)
     glUseProgram(gProgram[1]);
     glLineWidth(3);
 
-    // Modified camera position to match drawCube function
-    glm::vec3 cameraPosition(0.0f, 35.0f, 5.0f);  // Matched with drawCube
-    glm::vec3 targetPosition(0.0f, 0.0f, 0.0f);
-    glm::vec3 upDirection(0.0f, -1.0f, 0.0f);
+    glm::mat4 viewMatrix = glm::lookAt(eyePos, glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
 
-    glm::mat4 viewMatrix = glm::lookAt(cameraPosition, targetPosition, upDirection);
     glUniformMatrix4fv(viewingMatrixLoc[1], 1, GL_FALSE, glm::value_ptr(viewMatrix));
 
 
@@ -539,9 +522,9 @@ void drawTetrimoniEdges(glm::vec3 &blockPosition)
         for (int row = 0; row < cubeSize; ++row) {
             for (int col = 0; col < cubeSize; ++col) {
                 glm::vec3 cubePosition = blockPosition + glm::vec3(
-                    col * cubeSpacing - (cubeSize / 2.0f) * cubeSpacing,
-                    row * cubeSpacing - (cubeSize / 2.0f) * cubeSpacing,
-                    z * cubeSpacing - (cubeSize / 2.0f) * cubeSpacing
+                    col * 1.0f- 1.5f ,
+                    row * 1.0f- 2.5f  ,
+                    z * 1.0f- 2.5f  
                 );
 
                 glm::mat4 modelingMatrix = glm::translate(glm::mat4(1.0f), cubePosition);
@@ -671,7 +654,7 @@ void keyboard(GLFWwindow* window, int key, int scancode, int action, int mods)
     }
 }
 void updateBlock(glm::vec3 &blockPosition) {
-    blockPosition.z -= 1.f; // Move block downward.
+    blockPosition.y -= 1.f; // Move block downward.
 }
 
 void speedUp(float &fallSpeed){
@@ -686,7 +669,7 @@ void mainLoop(GLFWwindow* window)
     float lastUpdate = glfwGetTime();
     float currentTime;
 
-    glm::vec3 blockPosition(0.0f, 1.0f, 0.0f); // Starting position for the block (top-center of the scene).
+    glm::vec3 blockPosition(0.0f, 0.0f, 0.0f); // Starting position for the block (top-center of the scene).
 
     while (!glfwWindowShouldClose(window))
     {   

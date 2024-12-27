@@ -636,6 +636,21 @@ void reshape(GLFWwindow* window, int w, int h)
         glUniformMatrix4fv(viewingMatrixLoc[i], 1, GL_FALSE, glm::value_ptr(viewingMatrix));
     }
 }
+static float fallSpeed = 2.0f; 
+static glm::vec3 blockPosition(0.0f, 6.0f, 0.0f); // Starting position for the block (top-center of the scene).
+void speedUp(){
+    fallSpeed-=0.5f;
+}
+void slowDown(){
+    fallSpeed+=0.5f;
+}
+
+void left(){
+    blockPosition.x -= 1.0f;
+}
+void right(){
+    blockPosition.x += 1.0f;
+}
 
 void keyboard(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
@@ -646,30 +661,34 @@ void keyboard(GLFWwindow* window, int key, int scancode, int action, int mods)
 
     else if((key == GLFW_KEY_S) && action == GLFW_PRESS)
     {
-        //speedUp(fallSpeed);
+        speedUp();
     }
     else if ((key == GLFW_KEY_W) && action == GLFW_PRESS)
     {
-        //slowDown(fallSpeed);
+        slowDown();
+    }
+    else if ((key == GLFW_KEY_A) && action == GLFW_PRESS)
+    {
+        left();
+    }
+    else if ((key == GLFW_KEY_D) && action == GLFW_PRESS)
+    {
+        right();
     }
 }
 void updateBlock(glm::vec3 &blockPosition) {
     blockPosition.y -= 1.f; // Move block downward.
 }
 
-void speedUp(float &fallSpeed){
-    fallSpeed-=0.5f;
-}
-void slowDown(float &fallSpeed){
-    fallSpeed+=0.5f;
-}
+
+
 void mainLoop(GLFWwindow* window)
 {
-    float fallSpeed = 2.0f; // Time in seconds between movements.
+    // Time in seconds between movements.
     float lastUpdate = glfwGetTime();
     float currentTime;
 
-    glm::vec3 blockPosition(0.0f, 0.0f, 0.0f); // Starting position for the block (top-center of the scene).
+    
 
     while (!glfwWindowShouldClose(window))
     {   

@@ -34,13 +34,17 @@
 
 using namespace std;
 
+
+static float targetRotationAngle = 0.0f;
+static float currentRotationAngle = 0.0f;
+static const float ROTATION_SPEED = 3.0f;
 GLuint gProgram[3];
 int gWidth = 600, gHeight = 1000;
 GLuint gVertexAttribBuffer, gTextVBO, gIndexBuffer;
 GLuint gTex2D;
 int gVertexDataSizeInBytes, gNormalDataSizeInBytes;
 int gTriangleIndexDataSizeInBytes, gLineIndexDataSizeInBytes;
-
+static glm::mat4 rotationMat(1.0f);
 GLint modelingMatrixLoc[2];
 GLint viewingMatrixLoc[2];
 GLint projectionMatrixLoc[2];
@@ -428,7 +432,7 @@ void drawGridCube()
                 (row * cubeSpacing - (gridSize / 2.0f) * cubeSpacing) +20.f,  // Removed -100.f offset
                 -0.5f
             ));*/
-            modelingMatrix = glm::rotate(glm::mat4(1.f),-80.0f,glm::vec3(1.0f,0.0f,0.0f));
+            modelingMatrix = glm::rotate(rotationMat * glm::mat4(1.f),glm::radians(90.0f),glm::vec3(1.0f,0.0f,0.0f));
             modelingMatrix = glm::translate(modelingMatrix,glm::vec3(0.0f + row * 1.0f - 4.5f ,0.0f + col * 1.0f - 4.5f   ,6.0f));
             modelingMatrix = glm::scale(modelingMatrix, glm::vec3(1.0f,1.0f,0.4f));
             
@@ -459,7 +463,7 @@ void drawGridCubeEdges()
                 (row * cubeSpacing - (gridSize / 2.0f) * cubeSpacing) +20.f,  // Removed -100.f offset
                 -0.5f
             ));*/
-            modelingMatrix = glm::rotate(glm::mat4(1.f),-80.0f,glm::vec3(1.0f,0.0f,0.0f));
+            modelingMatrix = glm::rotate(rotationMat * glm::mat4(1.f),glm::radians(90.0f),glm::vec3(1.0f,0.0f,0.0f));
 
             modelingMatrix = glm::translate(modelingMatrix,glm::vec3(0.0f + row * 1.0f - 4.5f ,0.0f + col * 1.0f - 4.5f   ,6.0f));
 
@@ -475,7 +479,7 @@ void drawGridCubeEdges()
     }
 }
 
-void drawTetrimoniCube(glm::vec3 &blockPosition)
+void drawTetrimoniCube(glm::vec3 &blockPosition,glm::mat4 modelingMatrix)
 {   
     glUseProgram(gProgram[0]);
 
@@ -494,7 +498,7 @@ void drawTetrimoniCube(glm::vec3 &blockPosition)
                     z * 1.0f- 2.5f  
                 );
 
-                glm::mat4 modelingMatrix = glm::translate(glm::mat4(1.0f), cubePosition);
+                modelingMatrix = glm::translate( rotationMat * glm::mat4(1.0f), cubePosition);
                 modelingMatrix = glm::scale(modelingMatrix, glm::vec3(1.0f, 1.0f, 1.0f));
                 glUniformMatrix4fv(modelingMatrixLoc[0], 1, GL_FALSE, glm::value_ptr(modelingMatrix));
 
@@ -505,7 +509,7 @@ void drawTetrimoniCube(glm::vec3 &blockPosition)
 }
 
 
-void drawTetrimoniEdges(glm::vec3 &blockPosition)
+void drawTetrimoniEdges(glm::vec3 &blockPosition,glm::mat4 modelingMatrix)
 {   
     glUseProgram(gProgram[1]);
     glLineWidth(3);
@@ -527,7 +531,7 @@ void drawTetrimoniEdges(glm::vec3 &blockPosition)
                     z * 1.0f- 2.5f  
                 );
 
-                glm::mat4 modelingMatrix = glm::translate(glm::mat4(1.0f), cubePosition);
+                modelingMatrix = glm::translate(rotationMat * glm::mat4(1.0f), cubePosition);
                 modelingMatrix = glm::scale(modelingMatrix, glm::vec3(1.0f, 1.0f, 1.0f));
                 glUniformMatrix4fv(modelingMatrixLoc[1], 1, GL_FALSE, glm::value_ptr(modelingMatrix));
 
@@ -604,8 +608,8 @@ void display(glm::vec3 &blockPosition)
     glm::vec3 blockPosition_holder = blockPosition;
 
 
-    drawTetrimoniCube(blockPosition);
-    drawTetrimoniEdges(blockPosition_holder);
+    drawTetrimoniCube(blockPosition,modelingMatrix);
+    drawTetrimoniEdges(blockPosition_holder,modelingMatrix);
     //renderText("tetrisGL", gWidth/2 - 55, gHeight/2 - 60, 0.2f, glm::vec3(1, 1, 0));
     
     assert(glGetError() == GL_NO_ERROR);
@@ -638,6 +642,8 @@ void reshape(GLFWwindow* window, int w, int h)
 }
 static float fallSpeed = 2.0f; 
 static glm::vec3 blockPosition(0.0f, 6.0f, 0.0f); // Starting position for the block (top-center of the scene).
+
+
 void speedUp(){
     fallSpeed-=0.5f;
 }
@@ -651,6 +657,14 @@ void left(){
 void right(){
     blockPosition.x += 1.0f;
 }
+void rotateRight() {
+    targetRotationAngle -= 90.0f;
+}
+
+void rotateLeft() {
+    targetRotationAngle += 90.0f;
+}
+
 
 void keyboard(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
@@ -675,30 +689,48 @@ void keyboard(GLFWwindow* window, int key, int scancode, int action, int mods)
     {
         right();
     }
+    else if ((key == GLFW_KEY_H) && action == GLFW_PRESS) {
+    rotateLeft();
+}
+else if ((key == GLFW_KEY_K) && action == GLFW_PRESS) {
+    rotateRight();
+}
 }
 void updateBlock(glm::vec3 &blockPosition) {
     blockPosition.y -= 1.f; // Move block downward.
 }
 
 
-
-void mainLoop(GLFWwindow* window)
-{
-    // Time in seconds between movements.
-    float lastUpdate = glfwGetTime();
-    float currentTime;
-
-    
-
-    while (!glfwWindowShouldClose(window))
-    {   
+void updateRotation(float deltaTime) {
+    if (currentRotationAngle != targetRotationAngle) {
+        float diff = targetRotationAngle - currentRotationAngle;
+        float step = ROTATION_SPEED * deltaTime * 60.0f;
         
-        currentTime = glfwGetTime();
-        if (currentTime - lastUpdate >= fallSpeed) {
-        updateBlock(blockPosition);
-        lastUpdate = currentTime;
+        if (abs(diff) < step) {
+            currentRotationAngle = targetRotationAngle;
+        } else {
+            currentRotationAngle += (diff > 0 ? step : -step);
         }
-
+        
+        rotationMat = glm::rotate(glm::mat4(1.0f), glm::radians(currentRotationAngle), glm::vec3(0.0f, 1.0f, 0.0f));
+    }
+}
+void mainLoop(GLFWwindow* window) {
+    float lastUpdate = glfwGetTime();
+    float lastFrameTime = lastUpdate;
+    
+    while (!glfwWindowShouldClose(window)) {
+        float currentTime = glfwGetTime();
+        float deltaTime = currentTime - lastFrameTime;
+        lastFrameTime = currentTime;
+        
+        updateRotation(deltaTime);
+        
+        if (currentTime - lastUpdate >= fallSpeed) {
+            updateBlock(blockPosition);
+            lastUpdate = currentTime;
+        }
+        
         display(blockPosition);
         glfwSwapBuffers(window);
         glfwPollEvents();

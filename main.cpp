@@ -408,7 +408,7 @@ void init()
     initFonts(gWidth, gHeight);
 }
 
-void drawCube()
+void drawGridCube()
 {   
     glUseProgram(gProgram[0]);
 
@@ -417,7 +417,7 @@ void drawCube()
     glm::vec3 targetPosition(0.0f, 0.0f, 0.0f);    // Still looking at center
     glm::vec3 upDirection(0.0f, -1.0f, 0.0f);       // Maintained Y-up direction
 
-    glm::mat4 viewMatrix = glm::lookAt(cameraPosition, targetPosition, upDirection);
+    glm::mat4 viewMatrix = glm::lookAt(eyePos, glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
 
     // Send the view matrix to the shader
     glUniformMatrix4fv(viewingMatrixLoc[0], 1, GL_FALSE, glm::value_ptr(viewMatrix));
@@ -428,13 +428,15 @@ void drawCube()
 
     for (int row = 0; row < gridSize; ++row) {
         for (int col = 0; col < gridSize; ++col) {
-            glm::mat4 modelingMatrix = glm::translate(glm::mat4(1.f), glm::vec3(
+            /*glm::mat4 modelingMatrix = glm::translate(glm::mat4(1.f), glm::vec3(
                 col * cubeSpacing - (gridSize / 2.0f) * cubeSpacing,
                 (row * cubeSpacing - (gridSize / 2.0f) * cubeSpacing) +20.f,  // Removed -100.f offset
                 -0.5f
-            ));
-
-            modelingMatrix = glm::scale(modelingMatrix,glm::vec3(0.8f,0.8f,0.3f));
+            ));*/
+            modelingMatrix = glm::rotate(glm::mat4(1.f),-80.0f,glm::vec3(1.0f,0.0f,0.0f));
+            modelingMatrix = glm::translate(modelingMatrix,glm::vec3(0.0f + row * 1.0f - 4.5f ,0.0f + col * 1.0f - 4.5f   ,6.0f));
+            modelingMatrix = glm::scale(modelingMatrix, glm::vec3(1.0f,1.0f,0.4f));
+            
 
             glUniformMatrix4fv(modelingMatrixLoc[0], 1, GL_FALSE, glm::value_ptr(modelingMatrix));
             glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
@@ -442,7 +444,81 @@ void drawCube()
     }
 }
 
-void drawCubeEdges()
+void drawGridCubeEdges()
+{   
+    glUseProgram(gProgram[1]);
+
+    glLineWidth(3);
+
+    // Modified camera position to match drawCube function
+    glm::vec3 cameraPosition(0.0f, 35.0f, 5.0f);  // Matched with drawCube
+    glm::vec3 targetPosition(0.0f, 0.0f, 0.0f);
+    glm::vec3 upDirection(0.0f, -1.0f, 0.0f);
+
+    glm::mat4 viewMatrix = glm::lookAt(eyePos, glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
+    glUniformMatrix4fv(viewingMatrixLoc[1], 1, GL_FALSE, glm::value_ptr(viewMatrix));
+
+    const int gridSize = 9;
+    const float cubeSpacing = 0.8f;
+
+    for (int row = 0; row < gridSize; ++row) {
+        for (int col = 0; col < gridSize; ++col) {
+            /*glm::mat4 modelingMatrix = glm::translate(glm::mat4(1.f), glm::vec3(
+                col * cubeSpacing - (gridSize / 2.0f) * cubeSpacing,
+                (row * cubeSpacing - (gridSize / 2.0f) * cubeSpacing) +20.f,  // Removed -100.f offset
+                -0.5f
+            ));*/
+            modelingMatrix = glm::rotate(glm::mat4(1.f),-80.0f,glm::vec3(1.0f,0.0f,0.0f));
+
+            modelingMatrix = glm::translate(modelingMatrix,glm::vec3(0.0f + row * 1.0f - 4.5f ,0.0f + col * 1.0f - 4.5f   ,6.0f));
+
+            modelingMatrix = glm::scale(modelingMatrix, glm::vec3(1.0f,1.0f,0.4f));
+            
+
+            glUniformMatrix4fv(modelingMatrixLoc[1], 1, GL_FALSE, glm::value_ptr(modelingMatrix));
+
+            for (int i = 0; i < 6; ++i) {
+                glDrawElements(GL_LINE_LOOP, 4, GL_UNSIGNED_INT, BUFFER_OFFSET(gTriangleIndexDataSizeInBytes + i * 4 * sizeof(GLuint)));
+            }
+        }
+    }
+}
+
+void drawTetrimoniCube(glm::vec3 &blockPosition)
+{   
+    glUseProgram(gProgram[0]);
+
+    glm::vec3 cameraPosition(0.0f, 35.0f, 5.0f);
+    glm::vec3 targetPosition(0.0f, 0.0f, 0.0f);
+    glm::vec3 upDirection(0.0f, -1.0f, 0.0f);
+
+    glm::mat4 viewMatrix = glm::lookAt(cameraPosition, targetPosition, upDirection);
+    glUniformMatrix4fv(viewingMatrixLoc[0], 1, GL_FALSE, glm::value_ptr(viewMatrix));
+
+    const int cubeSize = 3;  // 3x3x3 grid
+    const float cubeSpacing = 0.8f;
+
+    for (int z = 0; z < cubeSize; ++z) {
+        for (int row = 0; row < cubeSize; ++row) {
+            for (int col = 0; col < cubeSize; ++col) {
+                glm::vec3 cubePosition = blockPosition + glm::vec3(
+                    col * cubeSpacing - (cubeSize / 2.0f) * cubeSpacing,
+                    row * cubeSpacing - (cubeSize / 2.0f) * cubeSpacing,
+                    z * cubeSpacing - (cubeSize / 2.0f) * cubeSpacing
+                );
+
+                glm::mat4 modelingMatrix = glm::translate(glm::mat4(1.0f), cubePosition);
+                modelingMatrix = glm::scale(modelingMatrix, glm::vec3(1.0f, 1.0f, 1.0f));
+                glUniformMatrix4fv(modelingMatrixLoc[0], 1, GL_FALSE, glm::value_ptr(modelingMatrix));
+
+                glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+            }
+        }
+    }
+}
+
+
+void drawTetrimoniEdges(glm::vec3 &blockPosition)
 {   
     glUseProgram(gProgram[1]);
     glLineWidth(3);
@@ -455,25 +531,32 @@ void drawCubeEdges()
     glm::mat4 viewMatrix = glm::lookAt(cameraPosition, targetPosition, upDirection);
     glUniformMatrix4fv(viewingMatrixLoc[1], 1, GL_FALSE, glm::value_ptr(viewMatrix));
 
-    const int gridSize = 9;
+
+    const int cubeSize = 3;  // 3x3x3 grid
     const float cubeSpacing = 0.8f;
 
-    for (int row = 0; row < gridSize; ++row) {
-        for (int col = 0; col < gridSize; ++col) {
-            glm::mat4 modelingMatrix = glm::translate(glm::mat4(1.f), glm::vec3(
-                col * cubeSpacing - (gridSize / 2.0f) * cubeSpacing,
-                (row * cubeSpacing - (gridSize / 2.0f) * cubeSpacing) +20.f,  // Removed -100.f offset
-                -0.5f
-            ));
-            modelingMatrix = glm::scale(modelingMatrix,glm::vec3(0.8f,0.8f,0.3f));
-            glUniformMatrix4fv(modelingMatrixLoc[1], 1, GL_FALSE, glm::value_ptr(modelingMatrix));
+    for (int z = 0; z < cubeSize; ++z) {
+        for (int row = 0; row < cubeSize; ++row) {
+            for (int col = 0; col < cubeSize; ++col) {
+                glm::vec3 cubePosition = blockPosition + glm::vec3(
+                    col * cubeSpacing - (cubeSize / 2.0f) * cubeSpacing,
+                    row * cubeSpacing - (cubeSize / 2.0f) * cubeSpacing,
+                    z * cubeSpacing - (cubeSize / 2.0f) * cubeSpacing
+                );
+
+                glm::mat4 modelingMatrix = glm::translate(glm::mat4(1.0f), cubePosition);
+                modelingMatrix = glm::scale(modelingMatrix, glm::vec3(1.0f, 1.0f, 1.0f));
+                glUniformMatrix4fv(modelingMatrixLoc[1], 1, GL_FALSE, glm::value_ptr(modelingMatrix));
+
 
             for (int i = 0; i < 6; ++i) {
                 glDrawElements(GL_LINE_LOOP, 4, GL_UNSIGNED_INT, BUFFER_OFFSET(gTriangleIndexDataSizeInBytes + i * 4 * sizeof(GLuint)));
             }
+            }
         }
     }
 }
+
 
 void renderText(const std::string& text, GLfloat x, GLfloat y, GLfloat scale, glm::vec3 color)
 {
@@ -525,17 +608,22 @@ void renderText(const std::string& text, GLfloat x, GLfloat y, GLfloat scale, gl
 }
 
 
-void display()
+void display(glm::vec3 &blockPosition)
 {
     glClearColor(0, 0, 0, 1);
     glClearDepth(1.0f);
     glClearStencil(0);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
-    drawCube();
+    drawGridCube();
 
-    drawCubeEdges();
-    renderText("tetrisGL", gWidth/2 - 55, gHeight/2 - 60, 0.75, glm::vec3(1, 1, 0));
+    drawGridCubeEdges();
+    glm::vec3 blockPosition_holder = blockPosition;
+
+
+    drawTetrimoniCube(blockPosition);
+    drawTetrimoniEdges(blockPosition_holder);
+    //renderText("tetrisGL", gWidth/2 - 55, gHeight/2 - 60, 0.2f, glm::vec3(1, 1, 0));
     
     assert(glGetError() == GL_NO_ERROR);
 }
@@ -572,13 +660,44 @@ void keyboard(GLFWwindow* window, int key, int scancode, int action, int mods)
     {
         glfwSetWindowShouldClose(window, GLFW_TRUE);
     }
+
+    else if((key == GLFW_KEY_S) && action == GLFW_PRESS)
+    {
+        //speedUp(fallSpeed);
+    }
+    else if ((key == GLFW_KEY_W) && action == GLFW_PRESS)
+    {
+        //slowDown(fallSpeed);
+    }
+}
+void updateBlock(glm::vec3 &blockPosition) {
+    blockPosition.z -= 1.f; // Move block downward.
 }
 
+void speedUp(float &fallSpeed){
+    fallSpeed-=0.5f;
+}
+void slowDown(float &fallSpeed){
+    fallSpeed+=0.5f;
+}
 void mainLoop(GLFWwindow* window)
 {
+    float fallSpeed = 2.0f; // Time in seconds between movements.
+    float lastUpdate = glfwGetTime();
+    float currentTime;
+
+    glm::vec3 blockPosition(0.0f, 1.0f, 0.0f); // Starting position for the block (top-center of the scene).
+
     while (!glfwWindowShouldClose(window))
-    {
-        display();
+    {   
+        
+        currentTime = glfwGetTime();
+        if (currentTime - lastUpdate >= fallSpeed) {
+        updateBlock(blockPosition);
+        lastUpdate = currentTime;
+        }
+
+        display(blockPosition);
         glfwSwapBuffers(window);
         glfwPollEvents();
     }

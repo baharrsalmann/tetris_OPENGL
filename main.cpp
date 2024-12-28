@@ -58,6 +58,10 @@ glm::mat4 modelingMatrix = glm::translate(glm::mat4(1.f), glm::vec3(-0.5, -0.5, 
 
 glm::vec3 eyePos = glm::vec3(0, 0, 24);
 glm::vec3 lightPos = glm::vec3(0, 0, 7);
+int currentView = 0; // 0 Front
+                     // 1 Left
+                     // 2 Back
+                     // 3 Right
 
 //glm::vec3 kdGround(0.334, 0.288, 0.635); // this is the ground color in the demo
 glm::vec3 kdCubes(0.86, 0.11, 0.31);
@@ -434,7 +438,7 @@ void drawGridCube()
             ));*/
             modelingMatrix = glm::rotate(rotationMat * glm::mat4(1.f),glm::radians(90.0f),glm::vec3(1.0f,0.0f,0.0f));
             modelingMatrix = glm::translate(modelingMatrix,glm::vec3(0.0f + row * 1.0f - 4.5f ,0.0f + col * 1.0f - 4.5f   ,6.5f));
-            modelingMatrix = glm::scale(modelingMatrix, glm::vec3(1.0f,1.0f,1.0f));
+            modelingMatrix = glm::scale(modelingMatrix, glm::vec3(1.0f,1.0f,0.4f));
             
 
             glUniformMatrix4fv(modelingMatrixLoc[0], 1, GL_FALSE, glm::value_ptr(modelingMatrix));
@@ -549,6 +553,23 @@ bool checkCollision(const glm::vec3& blockPosition) { // block position left rea
     for (int z = blockPosition.z; z < blockPosition.z + 3; z++) {
         for (int y = blockPosition.y; y < blockPosition.y + 3; y++) {
             for (int x = blockPosition.x; x < blockPosition.x + 3; x++) {
+
+
+
+
+                // Check if position is occupied
+                if (occupationMatrix[x][y+6][z]) {
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
+void lockBlock(const glm::vec3& blockPosition) {
+    for (int z = blockPosition.z; z < blockPosition.z + 3; z++) {
+        for (int y = blockPosition.y; y < blockPosition.y + 3; y++) {
+            for (int x = blockPosition.x; x < blockPosition.x + 3; x++) {
                 // Convert local cube position to world position
                 glm::vec3 worldPos = blockPosition + glm::vec3(
                     x * 1.0f - 1.5f,
@@ -559,16 +580,13 @@ bool checkCollision(const glm::vec3& blockPosition) { // block position left rea
 
 
 
-                // Check if position is occupied
-                if (occupationMatrix[(int) blockPosition.x][(int)blockPosition.y+5][(int)blockPosition.z]) {
-                    return true;
-                }
+                // Mark block position as occupied
+                //occupationMatrix[(int) blockPosition.x][(int)blockPosition.y+5][(int)blockPosition.z] = true;
+
             }
         }
     }
-    return false;
 }
-
 
 void renderText(const std::string& text, GLfloat x, GLfloat y, GLfloat scale, glm::vec3 color)
 {
@@ -666,22 +684,63 @@ void reshape(GLFWwindow* window, int w, int h)
     }
 }
 static float fallSpeed = 2.0f; 
-static glm::vec3 blockPosition(0.0f, 9.0f, 0.0f); // Starting position for the block (top-center of the scene).
+static glm::vec3 blockPosition(0.0f, 6.0f, 0.0f); // Starting position for the block (top-center of the scene).
 
 void left() {
     glm::vec3 nextPos = blockPosition;
-    nextPos.x -= 1.0f;
-    if (!checkCollision(nextPos)) {
+    if(currentView==0){ //Front
+        nextPos.x -= 1.0f;
+        if(nextPos.x<-3.5f) return; 
+        }
+    else if(currentView==1){ //Left 
+        nextPos.z -= 1.0f;
+        if(nextPos.z<-3.5f) return; 
+        }
+    
+    else if(currentView==2){ //Back 
+        nextPos.x += 1.0f;
+        if(nextPos.x>3.5f) return; 
+        }
+
+    else { //Right
+        nextPos.z += 1.0f;
+        if(nextPos.z>3.5f) return;
+    }
+    
+
+    if (1 || !checkCollision(nextPos)) {
         blockPosition = nextPos;
     }
+    
 }
 
 void right() {
     glm::vec3 nextPos = blockPosition;
-    nextPos.x += 1.0f;
-    if (!checkCollision(nextPos)) {
+    std::cout << currentView << std::endl;
+    if(currentView==0){ //Front
+        nextPos.x += 1.0f;
+        if(nextPos.x>3.5f) return; 
+        }
+    else if(currentView==1){ //Left 
+        nextPos.z += 1.0f;
+        if(nextPos.z>3.5f) return; 
+        }
+    
+    else if(currentView==2){ //Back 
+        nextPos.x -= 1.0f;
+        if(nextPos.x<-3.5f) return; 
+        }
+
+    else { //Right
+        nextPos.z -= 1.0f;
+        if(nextPos.z<-3.5f) return;
+    }
+    
+
+    if (1 || !checkCollision(nextPos)) {
         blockPosition = nextPos;
     }
+    
 }
 void speedUp(){
     fallSpeed-=0.5f;
@@ -692,10 +751,20 @@ void slowDown(){
 
 
 void rotateRight() {
+    currentView = (currentView - 1);
+    if (currentView < 0) {
+        currentView += 4;
+    }
+    currentView %= 4 ;
     targetRotationAngle -= 90.0f;
 }
 
 void rotateLeft() {
+    currentView = (currentView + 1);
+    if (currentView < 0) {
+        currentView += 4;
+    }
+    currentView %= 4 ;
     targetRotationAngle += 90.0f;
 }
 
@@ -730,29 +799,7 @@ else if ((key == GLFW_KEY_K) && action == GLFW_PRESS) {
     rotateRight();
 }
 }
-void lockBlock(const glm::vec3& blockPosition) {
-    for (int z = 0; z < 3; z++) {
-        for (int y = 0; y < 3; y++) {
-            for (int x = 0; x < 3; x++) {
-                glm::vec3 worldPos = blockPosition + glm::vec3(
-                    x * 1.0f - 1.5f,
-                    y * 1.0f - 2.5f,
-                    z * 1.0f - 2.5f
-                );
 
-                int gridX = round(worldPos.x + 4.5f);
-                int gridY = round(worldPos.y);
-                int gridZ = round(worldPos.z);
-
-                if (gridX >= 0 && gridX < 9 && 
-                    gridY >= 0 && gridY < 9 && 
-                    gridZ >= 0 && gridZ < 9) {
-                    occupationMatrix[gridY][gridX][gridZ] = true;
-                }
-            }
-        }
-    }
-}
 
 // Modify movement functions to include collision checks
 void updateBlock(glm::vec3 &blockPosition) {
@@ -762,7 +809,7 @@ void updateBlock(glm::vec3 &blockPosition) {
     if (checkCollision(nextPos)) {
         cout << "oldu\n";
         lockBlock(blockPosition);
-        blockPosition = glm::vec3(0.0f, 6.0f, 0.0f);
+        //blockPosition = glm::vec3(0.0f, 6.0f, 0.0f);
     } else {
         blockPosition = nextPos;
     }

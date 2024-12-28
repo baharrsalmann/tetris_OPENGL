@@ -515,6 +515,7 @@ void drawTetrimoniCube(glm::vec3 &blockPosition,glm::mat4 modelingMatrix)
 
 void drawTetrimoniEdges(glm::vec3 &blockPosition,glm::mat4 modelingMatrix)
 {   
+    //std::cout << blockPosition.x << " " << blockPosition.y << " " << blockPosition.z << std::endl ;
     glUseProgram(gProgram[1]);
     glLineWidth(3);
 
@@ -547,18 +548,18 @@ void drawTetrimoniEdges(glm::vec3 &blockPosition,glm::mat4 modelingMatrix)
         }
     }
 }
-static bool occupationMatrix[9][16][9]={false};
+static bool occupationMatrix[9][20][9]={false};
 bool checkCollision(const glm::vec3& blockPosition) { // block position left rear bottom
     // Check each cube in the 3x3x3 tetrimino
-    for (int z = blockPosition.z; z < blockPosition.z + 3; z++) {
-        for (int y = blockPosition.y; y < blockPosition.y + 3; y++) {
-            for (int x = blockPosition.x; x < blockPosition.x + 3; x++) {
+    for (int z = blockPosition.z-1; z < blockPosition.z + 2; z++) {
+        for (int y = blockPosition.y-1; y < blockPosition.y + 2; y++) {
+            for (int x = blockPosition.x-1; x < blockPosition.x + 2; x++) {
 
 
 
-
+                std::cout << x << y << z <<endl;
                 // Check if position is occupied
-                if (occupationMatrix[x][y+6][z]) {
+                if (occupationMatrix[x+4][y+7][z+4]) {
                     return true;
                 }
             }
@@ -581,7 +582,7 @@ void lockBlock(const glm::vec3& blockPosition) {
 
 
                 // Mark block position as occupied
-                //occupationMatrix[(int) blockPosition.x][(int)blockPosition.y+5][(int)blockPosition.z] = true;
+                occupationMatrix[(int) blockPosition.x][(int)blockPosition.y+7][(int)blockPosition.z] = true;
 
             }
         }
@@ -708,7 +709,7 @@ void left() {
     }
     
 
-    if (1 || !checkCollision(nextPos)) {
+    if (!checkCollision(nextPos)) {
         blockPosition = nextPos;
     }
     
@@ -716,7 +717,7 @@ void left() {
 
 void right() {
     glm::vec3 nextPos = blockPosition;
-    std::cout << currentView << std::endl;
+    //std::cout << currentView << std::endl;
     if(currentView==0){ //Front
         nextPos.x += 1.0f;
         if(nextPos.x>3.5f) return; 
@@ -737,7 +738,7 @@ void right() {
     }
     
 
-    if (1 || !checkCollision(nextPos)) {
+    if (!checkCollision(nextPos)) {
         blockPosition = nextPos;
     }
     
@@ -807,7 +808,7 @@ void updateBlock(glm::vec3 &blockPosition) {
     nextPos.y -= 1.0f;
     
     if (checkCollision(nextPos)) {
-        cout << "oldu\n";
+       // cout << "oldu\n";
         lockBlock(blockPosition);
         //blockPosition = glm::vec3(0.0f, 6.0f, 0.0f);
     } else {
@@ -842,6 +843,21 @@ void mainLoop(GLFWwindow* window) {
         for(int j=0; j<9 ; j++){
             occupationMatrix[i][0][j]=true;
         }
+    }
+
+    for(int z=0; z<16 ; z++){
+        for(int i=0; i<9; i++){
+            for(int j=0; j<9 ; j++)
+            
+                {   
+                    //if(occupationMatrix[i][z][j]) std::cout<<"1 ";
+                    //else std::cout<<"0 "; 
+                    }
+
+        }
+        std::cout << std::endl;
+
+
     }
     
     while (!glfwWindowShouldClose(window)) {

@@ -402,6 +402,27 @@ void initVBO()
 	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(gVertexDataSizeInBytes));
 }
 
+
+
+class Block {
+public:
+    glm::vec3 position;
+    bool isLocked;
+    
+    Block() : position(0.0f, 8.0f, 0.0f), isLocked(false) {}
+    Block(glm::vec3 pos) : position(pos), isLocked(false) {}
+};
+
+std::vector<Block> blocks;
+Block* activeBlock = nullptr;
+
+void createNewBlock() {
+    if (activeBlock && activeBlock->isLocked) {
+        blocks.push_back(*activeBlock);
+        delete activeBlock;
+    }
+    activeBlock = new Block(glm::vec3(0.0f, 8.0f, 0.0f));
+}
 void init() 
 {
     glEnable(GL_DEPTH_TEST);
@@ -483,7 +504,7 @@ void drawGridCubeEdges()
     }
 }
 
-void drawTetrimoniCube(glm::vec3 &blockPosition,glm::mat4 modelingMatrix)
+void drawTetrimoniCube(const glm::vec3 &blockPosition,glm::mat4 modelingMatrix)
 {   
     glUseProgram(gProgram[0]);
 
@@ -513,7 +534,7 @@ void drawTetrimoniCube(glm::vec3 &blockPosition,glm::mat4 modelingMatrix)
 }
 
 
-void drawTetrimoniEdges(glm::vec3 &blockPosition,glm::mat4 modelingMatrix)
+void drawTetrimoniEdges(const glm::vec3 &blockPosition,glm::mat4 modelingMatrix)
 {   
     //std::cout << blockPosition.x << " " << blockPosition.y << " " << blockPosition.z << std::endl ;
     glUseProgram(gProgram[1]);
@@ -627,7 +648,7 @@ void renderText(const std::string& text, GLfloat x, GLfloat y, GLfloat scale, gl
 }
 
 
-void display(glm::vec3 &blockPosition)
+void display()
 {
     glClearColor(0, 0, 0, 1);
     glClearDepth(1.0f);
@@ -635,13 +656,18 @@ void display(glm::vec3 &blockPosition)
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
     drawGridCube();
-
     drawGridCubeEdges();
-    glm::vec3 blockPosition_holder = blockPosition;
+    // Draw active block
+    if (activeBlock) {
+        drawTetrimoniCube(activeBlock->position, modelingMatrix);
+        drawTetrimoniEdges(activeBlock->position, modelingMatrix);
+    }
 
-
-    drawTetrimoniCube(blockPosition,modelingMatrix);
-    drawTetrimoniEdges(blockPosition_holder,modelingMatrix);
+    // Draw locked blocks
+    for (const Block& block : blocks) {
+        drawTetrimoniCube(block.position, modelingMatrix);
+        drawTetrimoniEdges(block.position, modelingMatrix);
+    }
     //renderText("tetrisGL", gWidth/2 - 55, gHeight/2 - 60, 0.2f, glm::vec3(1, 1, 0));
     
     assert(glGetError() == GL_NO_ERROR);
@@ -673,10 +699,13 @@ void reshape(GLFWwindow* window, int w, int h)
     }
 }
 static float fallSpeed = 2.0f; 
-static glm::vec3 blockPosition(0.0f, 8.0f, 0.0f); // Starting position for the block (top-center of the scene).
+//static glm::vec3 blockPosition(0.0f, 8.0f, 0.0f); // Starting position for the block (top-center of the scene).
 
 void left() {
-    glm::vec3 nextPos = blockPosition;
+    if (!activeBlock) return;
+    glm::vec3 nextPos = activeBlock->position;
+
+
     if(currentView==0){ //Front
         nextPos.x -= 1.0f;
         if(nextPos.x<-3.5f) return; 
@@ -698,14 +727,15 @@ void left() {
     
 
     if (!checkCollision(nextPos)) {
-        blockPosition = nextPos;
+        activeBlock->position = nextPos;
     }
     
 }
 
 void right() {
-    glm::vec3 nextPos = blockPosition;
-    //std::cout << currentView << std::endl;
+    if (!activeBlock) return;
+    glm::vec3 nextPos = activeBlock->position;
+
     if(currentView==0){ //Front
         nextPos.x += 1.0f;
         if(nextPos.x>3.5f) return; 
@@ -727,7 +757,7 @@ void right() {
     
 
     if (!checkCollision(nextPos)) {
-        blockPosition = nextPos;
+        activeBlock->position = nextPos;
     }
     
 }
@@ -791,16 +821,18 @@ else if ((key == GLFW_KEY_K) && action == GLFW_PRESS) {
 
 
 // Modify movement functions to include collision checks
-void updateBlock(glm::vec3 &blockPosition) {
-    glm::vec3 nextPos = blockPosition;
+void updateBlock() {
+    if (!activeBlock) return;
+    
+    glm::vec3 nextPos = activeBlock->position;
     nextPos.y -= 1.0f;
     
     if (checkCollision(nextPos)) {
-       // cout << "oldu\n";
-        lockBlock(blockPosition);
-        //blockPosition = glm::vec3(0.0f, 6.0f, 0.0f);
+        activeBlock->isLocked = true;
+        lockBlock(activeBlock->position);
+        createNewBlock();
     } else {
-        blockPosition = nextPos;
+        activeBlock->position = nextPos;
     }
 }
 
@@ -834,7 +866,8 @@ void mainLoop(GLFWwindow* window) {
     }
 
 
-    
+    createNewBlock();
+
     while (!glfwWindowShouldClose(window)) {
         float currentTime = glfwGetTime();
         float deltaTime = currentTime - lastFrameTime;
@@ -843,14 +876,17 @@ void mainLoop(GLFWwindow* window) {
         updateRotation(deltaTime);
         
         if (currentTime - lastUpdate >= fallSpeed) {
-            updateBlock(blockPosition);
+            updateBlock();
             lastUpdate = currentTime;
         }
         
-        display(blockPosition);
+        display();
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
+
+    delete activeBlock;
+    /*
         for(int z=0; z<16 ; z++){
         for(int i=0; i<9; i++){
             for(int j=0; j<9 ; j++)
@@ -864,7 +900,7 @@ void mainLoop(GLFWwindow* window) {
         std::cout << std::endl;
 
 
-    }
+    } */
 }
 
 int main(int argc, char** argv)   // Create Main Function For Bringing It All Together

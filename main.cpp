@@ -62,7 +62,7 @@ int currentView = 0; // 0 Front
                      // 1 Left
                      // 2 Back
                      // 3 Right
-
+int points=0;
 //glm::vec3 kdGround(0.334, 0.288, 0.635); // this is the ground color in the demo
 glm::vec3 kdCubes(0.86, 0.11, 0.31);
 
@@ -710,6 +710,7 @@ void clearLayer(int baseY) {
 void checkAndClearLayers() {
     for(int y = 1; y < 14; y += 3) {
         if(isLayerFull(y)) {
+            points+=243;
             clearLayer(y);
             y -= 3; // Recheck same level after dropping blocks
         }
@@ -739,8 +740,12 @@ void display()
         drawTetrimoniCube(block.position, modelingMatrix);
         drawTetrimoniEdges(block.position, modelingMatrix);
     }
-    renderText("Points:", gWidth/2 +280 , gHeight/2 +400 , 0.7f, glm::vec3(1, 1, 0));
-    renderText("view", gWidth/2 - 310, gHeight/2 +400 , 0.7f, glm::vec3(1, 1, 0));
+
+    renderText("Points: " + std::to_string(points), gWidth/2 +280 , gHeight/2 +400 , 0.7f, glm::vec3(1, 1, 0));
+    if(currentView==0) renderText("Front", gWidth/2 - 310, gHeight/2 +400 , 0.7f, glm::vec3(1, 1, 0));
+    else if(currentView==1) renderText("Left", gWidth/2 - 310, gHeight/2 +400 , 0.7f, glm::vec3(1, 1, 0));
+    else if(currentView==2) renderText("Back", gWidth/2 - 310, gHeight/2 +400 , 0.7f, glm::vec3(1, 1, 0));
+    else if(currentView==3) renderText("Right", gWidth/2 - 310, gHeight/2 +400 , 0.7f, glm::vec3(1, 1, 0));
     
     assert(glGetError() == GL_NO_ERROR);
 }

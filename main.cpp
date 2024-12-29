@@ -63,6 +63,7 @@ int currentView = 0; // 0 Front
                      // 2 Back
                      // 3 Right
 int points=0;
+bool game_over = false;
 //glm::vec3 kdGround(0.334, 0.288, 0.635); // this is the ground color in the demo
 glm::vec3 kdCubes(0.86, 0.11, 0.31);
 
@@ -473,15 +474,28 @@ public:
     Block() : position(0.0f, 8.0f, 0.0f), isLocked(false) {}
     Block(glm::vec3 pos) : position(pos), isLocked(false) {}
 };
-
+static bool occupationMatrix[9][16][9]={false};
 std::vector<Block> blocks;
 Block* activeBlock = nullptr;
+void gameOver(){
+
+    for (int z = -1; z < 2; z++) {
+        for (int y =-1; y <  2; y++) {
+            for (int x = -1; x <  2; x++) {
+                if(occupationMatrix[x+4][y+14][z+4]) {game_over = true; return;}
+            }
+        }
+    }
+}
 
 void createNewBlock() {
     if (activeBlock && activeBlock->isLocked) {
         //blocks.push_back(*activeBlock);
         delete activeBlock;
+        activeBlock = nullptr;
     }
+    gameOver();
+    if(game_over) return;
     activeBlock = new Block(glm::vec3(0.0f, 8.0f, 0.0f));
 }
 
@@ -617,7 +631,7 @@ void drawTetrimoniEdges(const glm::vec3 &blockPosition,glm::mat4 modelingMatrix)
         }
     }
 }
-static bool occupationMatrix[9][16][9]={false};
+
 bool checkCollision(const glm::vec3& blockPosition) { // block position left rear bottom
     // Check each cube in the 3x3x3 tetrimino
     for (int z = blockPosition.z-1; z < blockPosition.z + 2; z++) {
@@ -747,6 +761,7 @@ void display()
     else if(currentView==2) renderText("Back", gWidth/2 - 310, gHeight/2 +400 , 0.7f, glm::vec3(1, 1, 0));
     else if(currentView==3) renderText("Right", gWidth/2 - 310, gHeight/2 +400 , 0.7f, glm::vec3(1, 1, 0));
     
+    if(game_over) renderText("GAME OVER!", gWidth/2 -200 , gHeight/2 , 1.5f, glm::vec3(1, 1, 0));
     assert(glGetError() == GL_NO_ERROR);
 }
 
@@ -845,6 +860,7 @@ void right() {
 }
 void speedUp(){
     fallSpeed-=0.5f;
+    if(fallSpeed<0) fallSpeed=0;
 }
 void slowDown(){
     fallSpeed+=0.5f;
@@ -938,6 +954,9 @@ void updateRotation(float deltaTime) {
     }
 }
 
+
+
+
 void mainLoop(GLFWwindow* window) {
     float lastUpdate = glfwGetTime();
     float lastFrameTime = lastUpdate;
@@ -959,7 +978,7 @@ void mainLoop(GLFWwindow* window) {
         
         updateRotation(deltaTime);
         
-        if (currentTime - lastUpdate >= fallSpeed) {
+        if (fallSpeed <6.0f && currentTime - lastUpdate >= fallSpeed) {
             updateBlock();
             lastUpdate = currentTime;
         }

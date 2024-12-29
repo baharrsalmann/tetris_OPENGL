@@ -604,7 +604,7 @@ void drawTetrimoniEdges(const glm::vec3 &blockPosition,glm::mat4 modelingMatrix)
 
     glm::mat4 viewMatrix = glm::lookAt(eyePos, glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
 
-    glUniformMatrix4fv(viewingMatrixLoc[1], 1, GL_FALSE, glm::value_ptr(viewMatrix));; 
+    glUniformMatrix4fv(viewingMatrixLoc[1], 1, GL_FALSE, glm::value_ptr(viewMatrix)); 
 
     const int cubeSize = 3;  // 3x3x3 grid
     const float cubeSpacing = 0.8f;

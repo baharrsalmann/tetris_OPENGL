@@ -402,6 +402,67 @@ void initVBO()
 	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(gVertexDataSizeInBytes));
 }
 
+void renderText(const std::string& text, GLfloat x, GLfloat y, GLfloat scale, glm::vec3 color)
+{
+    // Activate corresponding render state	
+    glUseProgram(gProgram[2]);
+    glUniform3f(glGetUniformLocation(gProgram[2], "textColor"), color.x, color.y, color.z);
+    glActiveTexture(GL_TEXTURE0);
+
+    // Iterate through all characters
+    std::string::const_iterator c;
+    for (c = text.begin(); c != text.end(); c++) 
+    {
+        Character ch = Characters[*c];
+
+        GLfloat xpos = x + ch.Bearing.x * scale;
+        GLfloat ypos = y - (ch.Size.y - ch.Bearing.y) * scale;
+
+        GLfloat w = ch.Size.x * scale;
+        GLfloat h = ch.Size.y * scale;
+
+        // Update VBO for each character
+        GLfloat vertices[6][4] = {
+            { xpos,     ypos + h,   0.0, 0.0 },            
+            { xpos,     ypos,       0.0, 1.0 },
+            { xpos + w, ypos,       1.0, 1.0 },
+
+            { xpos,     ypos + h,   0.0, 0.0 },
+            { xpos + w, ypos,       1.0, 1.0 },
+            { xpos + w, ypos + h,   1.0, 0.0 }           
+        };
+
+        // Render glyph texture over quad
+        glBindTexture(GL_TEXTURE_2D, ch.TextureID);
+
+        // Update content of VBO memory
+        glBindBuffer(GL_ARRAY_BUFFER, gTextVBO);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices); // Be sure to use glBufferSubData and not glBufferData
+
+        //glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+        // Render quad
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+        // Now advance cursors for next glyph (note that advance is number of 1/64 pixels)
+
+        x += (ch.Advance >> 6) * scale; // Bitshift by 6 to get value in pixels (2^6 = 64 (divide amount of 1/64th pixels by 64 to get amount of pixels))
+    }
+
+    glBindTexture(GL_TEXTURE_2D, 0);
+}
+void init() 
+{
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
+
+    // polygon offset is used to prevent z-fighting between the cube and its borders
+    glPolygonOffset(0.5, 0.5);
+    glEnable(GL_POLYGON_OFFSET_FILL);
+
+    initShaders();
+    initVBO();
+    initFonts(gWidth, gHeight);
+}
 
 
 class Block {
@@ -418,23 +479,10 @@ Block* activeBlock = nullptr;
 
 void createNewBlock() {
     if (activeBlock && activeBlock->isLocked) {
-        blocks.push_back(*activeBlock);
+        //blocks.push_back(*activeBlock);
         delete activeBlock;
     }
     activeBlock = new Block(glm::vec3(0.0f, 8.0f, 0.0f));
-}
-void init() 
-{
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_CULL_FACE);
-
-    // polygon offset is used to prevent z-fighting between the cube and its borders
-    glPolygonOffset(0.5, 0.5);
-    glEnable(GL_POLYGON_OFFSET_FILL);
-
-    initShaders();
-    initVBO();
-    initFonts(gWidth, gHeight);
 }
 
 void drawGridCube()
@@ -598,54 +646,77 @@ void lockBlock(const glm::vec3& blockPosition) {
     }
 }
 
-void renderText(const std::string& text, GLfloat x, GLfloat y, GLfloat scale, glm::vec3 color)
-{
-    // Activate corresponding render state	
-    glUseProgram(gProgram[2]);
-    glUniform3f(glGetUniformLocation(gProgram[2], "textColor"), color.x, color.y, color.z);
-    glActiveTexture(GL_TEXTURE0);
+bool isLayerFull(int baseY) {
+    // Check 3 layers starting from baseY
+    for(int y = baseY; y < baseY + 3; y++) {
+        for(int x = 0; x < 9; x++) {
+            for(int z = 0; z < 9; z++) {
+                if(!occupationMatrix[x][y][z]) {
+                    return false;
+                }
+            }
+        }
+    }
+    std::cout << "Layer " << baseY << " to " << baseY + 2 << " is full!" << std::endl;
+    return true;
+}
 
-    // Iterate through all characters
-    std::string::const_iterator c;
-    for (c = text.begin(); c != text.end(); c++) 
-    {
-        Character ch = Characters[*c];
+void clearLayer(int baseY) {
+    std::cout << "Clearing layer from " << baseY << " to " << baseY + 2 << std::endl;
+    std::cout << "Blocks before clearing: " << blocks.size() << std::endl;
+    
+    // Remove blocks in these layers
+    std::vector<Block> remainingBlocks;
+    for(const Block& block : blocks) {
+        float y = block.position.y +7 ; // extremely important +7
+        if(y < baseY || y >= baseY + 3) {
+            remainingBlocks.push_back(block);
+            std::cout << "Keeping block at y = " << y << std::endl;
+        } else {
+            std::cout << "Removing block at y = " << y << std::endl;
+        }
+    }
+    blocks = remainingBlocks;
+    std::cout << "Blocks after clearing: " << blocks.size() << std::endl;
 
-        GLfloat xpos = x + ch.Bearing.x * scale;
-        GLfloat ypos = y - (ch.Size.y - ch.Bearing.y) * scale;
-
-        GLfloat w = ch.Size.x * scale;
-        GLfloat h = ch.Size.y * scale;
-
-        // Update VBO for each character
-        GLfloat vertices[6][4] = {
-            { xpos,     ypos + h,   0.0, 0.0 },            
-            { xpos,     ypos,       0.0, 1.0 },
-            { xpos + w, ypos,       1.0, 1.0 },
-
-            { xpos,     ypos + h,   0.0, 0.0 },
-            { xpos + w, ypos,       1.0, 1.0 },
-            { xpos + w, ypos + h,   1.0, 0.0 }           
-        };
-
-        // Render glyph texture over quad
-        glBindTexture(GL_TEXTURE_2D, ch.TextureID);
-
-        // Update content of VBO memory
-        glBindBuffer(GL_ARRAY_BUFFER, gTextVBO);
-        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices); // Be sure to use glBufferSubData and not glBufferData
-
-        //glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-        // Render quad
-        glDrawArrays(GL_TRIANGLES, 0, 6);
-        // Now advance cursors for next glyph (note that advance is number of 1/64 pixels)
-
-        x += (ch.Advance >> 6) * scale; // Bitshift by 6 to get value in pixels (2^6 = 64 (divide amount of 1/64th pixels by 64 to get amount of pixels))
+    // Clear occupation matrix
+    for(int y = baseY; y < baseY + 3; y++) {
+        for(int x = 0; x < 9; x++) {
+            for(int z = 0; z < 9; z++) {
+                occupationMatrix[x][y][z] = false;
+            }
+        }
     }
 
-    glBindTexture(GL_TEXTURE_2D, 0);
+    // Move blocks above down
+    for(Block& block : blocks) {
+        if(block.position.y + 7 > baseY + 2) { // +7 is important
+            block.position.y -= 3.0f;
+            std::cout << "Moving block from y=" << block.position.y + 3.0f 
+                     << " to y=" << block.position.y << std::endl;
+        }
+    }
+
+    // Update matrix for higher layers
+    for(int y = baseY; y < 13; y++) {
+        for(int x = 0; x < 9; x++) {
+            for(int z = 0; z < 9; z++) {
+                occupationMatrix[x][y][z] = occupationMatrix[x][y+3][z];
+            }
+        }
+    }
 }
+
+void checkAndClearLayers() {
+    for(int y = 1; y < 14; y += 3) {
+        if(isLayerFull(y)) {
+            clearLayer(y);
+            y -= 3; // Recheck same level after dropping blocks
+        }
+    }
+}
+
+
 
 
 void display()
@@ -668,7 +739,8 @@ void display()
         drawTetrimoniCube(block.position, modelingMatrix);
         drawTetrimoniEdges(block.position, modelingMatrix);
     }
-    //renderText("tetrisGL", gWidth/2 - 55, gHeight/2 - 60, 0.2f, glm::vec3(1, 1, 0));
+    renderText("Points:", gWidth/2 +280 , gHeight/2 +400 , 0.7f, glm::vec3(1, 1, 0));
+    renderText("view", gWidth/2 - 310, gHeight/2 +400 , 0.7f, glm::vec3(1, 1, 0));
     
     assert(glGetError() == GL_NO_ERROR);
 }
@@ -697,6 +769,11 @@ void reshape(GLFWwindow* window, int w, int h)
         glUniformMatrix4fv(projectionMatrixLoc[i], 1, GL_FALSE, glm::value_ptr(projectionMatrix));
         glUniformMatrix4fv(viewingMatrixLoc[i], 1, GL_FALSE, glm::value_ptr(viewingMatrix));
     }
+    // Update text projection matrix when window resizes
+    glm::mat4 textProjection = glm::ortho(0.0f, static_cast<float>(w), 0.0f, static_cast<float>(h));
+    glUseProgram(gProgram[2]);
+    glUniformMatrix4fv(glGetUniformLocation(gProgram[2], "projection"), 1, GL_FALSE, glm::value_ptr(textProjection));
+
 }
 static float fallSpeed = 2.0f; 
 //static glm::vec3 blockPosition(0.0f, 8.0f, 0.0f); // Starting position for the block (top-center of the scene).
@@ -830,6 +907,8 @@ void updateBlock() {
     if (checkCollision(nextPos)) {
         activeBlock->isLocked = true;
         lockBlock(activeBlock->position);
+        blocks.push_back(*activeBlock);
+        checkAndClearLayers();
         createNewBlock();
     } else {
         activeBlock->position = nextPos;

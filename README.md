@@ -1,11 +1,6 @@
 
 # TetrisGL  
 
-## Middle East Technical University  
-**Department of Computer Engineering**  
-**CENG 477 - Introduction to Computer Graphics**  
-**Fall 2024**  
-
 ### 3D Rendering with OpenGL  
 
 This project is a 3D Tetris-style game built using OpenGL and GLSL shaders, written in C++. The goal is to implement a simple 3D game that resembles classic Tetris while utilizing modern graphics programming techniques.

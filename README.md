@@ -32,7 +32,3 @@ This project is a 3D Tetris-style game built using OpenGL and GLSL shaders, writ
 ## How to Run  
 1. Compile the code using `make`.  
 2. Run the executable `./tetrisGL`.  
-
----
-
-Let me know if you'd like any modifications! 🚀

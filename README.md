@@ -1,6 +1,3 @@
-Here's a simple README for your project:  
-
----
 
 # TetrisGL  
 
@@ -9,9 +6,9 @@ Here's a simple README for your project:
 **CENG 477 - Introduction to Computer Graphics**  
 **Fall 2024**  
 
-### Assignment 3 - 3D Rendering with OpenGL  
+### 3D Rendering with OpenGL  
 
-This project is a 3D Tetris-style game built using OpenGL and GLSL shaders, written in C/C++. The goal is to implement a simple 3D game that resembles classic Tetris while utilizing modern graphics programming techniques.
+This project is a 3D Tetris-style game built using OpenGL and GLSL shaders, written in C++. The goal is to implement a simple 3D game that resembles classic Tetris while utilizing modern graphics programming techniques.
 
 ## Features  
 - **3D Game Mechanics**: A falling 3×3 cube that can be moved left and right.  
@@ -31,7 +28,7 @@ This project is a 3D Tetris-style game built using OpenGL and GLSL shaders, writ
 - `K` - Rotate view right  
 
 ## Technologies Used  
-- **C/C++** for core game logic  
+- **C++** for core game logic  
 - **OpenGL** for rendering  
 - **GLFW** for window management  
 - **GLEW** for OpenGL extensions  
